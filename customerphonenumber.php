@@ -30,7 +30,21 @@ class CustomerPhoneNumber extends Module
     public function install()
     {
 
-        return parent::install() && $this->registerHook('additionalCustomerFormFields'); 
+        return parent::install() 
+        && $this->registerHook('additionalCustomerFormFields')
+        && $this->registerHook('actionObjectCustomerAddAfter')
+        && $this->registerHook('actionObjectCustomerUpdateBefore')
+        && $this->installDB(); 
+    }
+
+    private function installDB()
+    {
+        $row = Db::getInstance()->getRow('SELECT * FROM '._DB_PREFIX_.'customer');
+        if(!isset($row['phone'])){
+            $sql = 'ALTER TABLE `'._DB_PREFIX_.'customer` ADD `phone` VARCHAR(255) NOT NULL AFTER `ape`';
+            return Db::getInstance()->execute($sql);    
+        }
+        return true;
     }
 
     public function uninstall()
@@ -43,15 +57,23 @@ class CustomerPhoneNumber extends Module
         
         return [
             (new FormField)
-            ->setName('professionnal_id')
+            ->setName('customer_phone')
             ->setType('text')
-            //->setRequired(true) Décommenter pour rendre obligatoire
-            ->setLabel($this->l('Professionnal id')),
-            // (new FormField)
-            // ->setName('justificatif_upload')
-            // ->setType('file')
-            // ->setLabel($this->l('document ID'))
+            ->setValue($this->context->customer->phone)
+            ->setLabel($this->l('Customer phone')
+            ),
         ];
+    }
+
+    public function hookactionObjectCustomerAddAfter($params)
+    {
+        
+    }
+    public function hookactionObjectCustomerUpdateBefore($params)
+    {
+        $customer = $params['object'];
+        $phone_number = pSQL(Tools::getValue('customer_phone'));
+        $customer->phone = $phone_number;
     }
 
 }
